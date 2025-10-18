@@ -5,9 +5,6 @@
       <div v-for="(msg, index) in messages" :key="index" class="message" :class="msg.role">
         <div class="sender">{{ msg.role === 'user' ? '我' : 'AI' }}</div>
         <div class="content" v-html="parseMarkdown(msg.content)"></div>
-        <button class="copy-button" @click="copyToClipboard(msg.content)" title="复制内容">
-          {{ copyStatus === index ? '已复制!' : '复制' }}
-        </button>
       </div>
       <!-- 加载状态 -->
       <div class="loading" v-if="isLoading">正在思考中...</div>
@@ -59,52 +56,11 @@ const userInput = ref('');
 const messages = ref([]);
 const isLoading = ref(false);
 const ws = ref(null);
-const copyStatus = ref(-1); // 跟踪哪个消息被复制了，-1表示没有
 
 // Markdown解析函数
 const parseMarkdown = (text) => {
   if (!text) return '';
   return md.render(text);
-};
-
-// 复制到剪贴板功能
-const copyToClipboard = async (text) => {
-  try {
-    // 使用现代的Clipboard API
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(text);
-    } else {
-      // 降级方案：使用传统的execCommand方法
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-
-      // 将textarea元素添加到DOM中但使其不可见
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      textArea.style.top = '-999999px';
-      document.body.appendChild(textArea);
-
-      // 选择并复制文本
-      textArea.focus();
-      textArea.select();
-      document.execCommand('copy');
-
-      // 移除临时元素
-      document.body.removeChild(textArea);
-    }
-
-    // 显示复制成功反馈
-    const lastIndex = messages.value.length - 1;
-    copyStatus.value = lastIndex;
-    setTimeout(() => {
-      copyStatus.value = -1;
-    }, 2000);
-
-    console.log('内容已复制到剪贴板');
-  } catch (error) {
-    console.error('复制失败:', error);
-    alert('复制失败，请手动选择并复制内容');
-  }
 };
 
 // 初始化WebSocket连接
@@ -126,7 +82,7 @@ const initWebSocket = () => {
   ws.value.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data);
-
+      //  看数据是否加载成功
       if (data.done) {
         // 标记加载完成
         isLoading.value = false;
@@ -300,33 +256,6 @@ button:hover {
 button:disabled {
   background-color: #94a3b8;
   cursor: not-allowed;
-}
-
-/* 复制按钮样式 */
-.copy-button {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 4px 8px;
-  font-size: 10px;
-  border-radius: 10px;
-  background-color: rgba(0, 0, 0, 0.1);
-  color: inherit;
-  margin-left: 0;
-  opacity: 0;
-  transition: opacity 0.2s, background-color 0.2s;
-}
-
-.message:hover .copy-button {
-  opacity: 1;
-}
-
-.message.user .copy-button:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-.message.assistant .copy-button:hover {
-  background-color: rgba(0, 0, 0, 0.2);
 }
 
 /* Markdown 样式增强 */

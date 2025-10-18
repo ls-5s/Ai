@@ -10,15 +10,19 @@ const handleChatWebSocket = async (ws, req) => {
         // 监听客户端消息
         ws.on('message', async (data) => {
             try {
+                // 解析客户端发送的JSON数据
                 const { messages } = JSON.parse(data);
                 console.log("使用模型：", DEFAULT_MODEL);
                 console.log("输入消息：", messages);
 
                 // 开启流式对话
                 const stream = await ollama.chat({
-                    model: DEFAULT_MODEL,
+                    model: DEFAULT_MODEL,// 模型名称
                     messages,
-                    stream: true
+                    // 消息列表 {
+                    // role: 'user', content: 'Hello!' 
+                    //}
+                    stream: true// 开启流式响应
                 });
 
                 // 逐块推送内容
@@ -28,13 +32,19 @@ const handleChatWebSocket = async (ws, req) => {
                         ws.send(JSON.stringify({
                             code: 200,
                             data: { content },
-                            done: false
+                            done: false//表示不是最后一块数据,后面还有数据
                         }));
                     }
                 }
 
+
                 // 发送完成通知
+                // ws.CONNECTING = 0（连接正在建立中）
+                // ws.OPEN = 1（连接已打开，可正常通信）
+                // ws.CLOSING = 2（连接正在关闭过程中）
+                // ws.CLOSED = 3（连接已完全关闭）
                 if (ws.readyState === ws.OPEN) {
+                    // 发送完成通知ws.open 是1
                     ws.send(JSON.stringify({
                         code: 201,
                         message: "对话完成",
